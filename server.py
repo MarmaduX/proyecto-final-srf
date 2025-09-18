@@ -1,12 +1,14 @@
-from flask import Flask, Response
+from flask import Flask, Response, jsonify
 import cv2
 from ultralytics import YOLO
 import threading
+from services.detection_service import detection_service
+from config.settings import settings
 
 app = Flask(__name__)
 model = YOLO("../AI/weights/best.pt")
 
-cap = cv2.VideoCapture("http://192.168.1.10:4747/video")
+cap = cv2.VideoCapture("http://192.168.1.51:4747/video")
 frame_output = None   
 running = True       
 
@@ -30,6 +32,7 @@ def detection_loop():
 
         if detections:
             print("Detecciones:", detections)
+            detection_service.store_detections(detections)
 
 @app.route("/")
 def index():
@@ -50,13 +53,21 @@ def video():
 
     return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
-if __name__ == "__main__":
-    t = threading.Thread(target=detection_loop, daemon=True)
-    t.start()
+@app.route("/detections")
+def get_detections():
+    detections = detection_service.get_recent_detections(limit=50)
+    return jsonify(detections)
 
-    try:
-        app.run(host="0.0.0.0", port=5000)
-    finally:
-        running = False
-        cap.release()
-        cv2.destroyAllWindows()
+if __name__ == "__main__":
+    if detection_service.initialize():
+        t = threading.Thread(target=detection_loop, daemon=True)
+        t.start()
+
+        try:
+            app.run(host=settings.HOST, port=settings.PORT, debug=settings.FLASK_DEBUG)
+        finally:
+            running = False
+            cap.release()
+            cv2.destroyAllWindows()
+    else:
+        print("Failed to initialize MongoDB connection")
