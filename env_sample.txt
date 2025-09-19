@@ -1,0 +1,13 @@
+MONGODB_URI=mongodb://localhost:27017/
+DATABASE_NAME=detection_system
+
+FLASK_ENV=development
+FLASK_DEBUG=True
+HOST=0.0.0.0
+PORT=5000
+
+# For MongoDB Atlas:
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/
+
+# For custom MongoDB:
+# MONGODB_URI=mongodb://username:password@your-server:27017/

@@ -1,6 +1,7 @@
 from config.database import db_config
 from models.detection import Detection, DetectionBatch
 from typing import List, Dict, Any
+import json
 
 class DetectionService:
     def __init__(self):
@@ -62,5 +63,4 @@ class DetectionService:
         except Exception as e:
             print(f"Error retrieving detections: {e}")
             return []
-
 detection_service = DetectionService()
