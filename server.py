@@ -13,6 +13,7 @@ from mqtt_client import setup_mqtt
 from services.detection_loop import detection_loop
 from services.detection_service import detection_service
 from config.settings import settings
+import time
 
 
 app = Flask(__name__)
@@ -87,15 +88,16 @@ if __name__ == "__main__":
     if detection_service.initialize():
         t = threading.Thread(target=detection_loop, args=(cap, model, control, mqtt_client, frame_output, frame_lock), daemon=True)
         t.start()
-
         try:
             app.run(host=settings.HOST, port=settings.PORT, debug=settings.FLASK_DEBUG, use_reloader=False)
         finally:
-            running = False
+            running = False 
             cap.release()
             cv2.destroyAllWindows()
             control["running"] = False
             mqtt_client.loop_stop()
             mqtt_client.disconnect()  
     else:
-        print("Failed to initialize MongoDB connection") 
+        print("Failed to initialize MongoDB connection")
+        cap.release()
+        cv2.destroyAllWindows()

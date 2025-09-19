@@ -35,9 +35,7 @@ class DetectionService:
             if not detections:
                 print("No hay detecciones para guardar")
                 return False
-            
-            detection_objects = [] 
-            print(detections) 
+            detection_objects = []
 
             for d in detections:
                 class_name = d.get("class_name", "unknown")
@@ -45,12 +43,11 @@ class DetectionService:
                 distance_cm = d.get("distance_cm")
                 bbox = d.get("bbox", [])
 
-                detection = Detection(class_name=class_name, distance_cm=distance_cm, confidence=confidence, bbox=bbox)
+                detection = Detection(class_name=class_name, distance_cm=distance_cm, confidence=confidence, bbox=bbox, timestamp=det.get("timestamp"))
                 detection_objects.append(detection)
 
             batch = DetectionBatch(detection_objects)
             return self.store_detection_batch(batch)
-
         except Exception as e:
             print(f"Error storing detections: {e}")
             return False
@@ -64,6 +61,4 @@ class DetectionService:
         except Exception as e:
             print(f"Error retrieving detections: {e}")
             return []
-    
-
 detection_service = DetectionService()

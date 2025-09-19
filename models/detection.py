@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 class Detection:
-    def __init__(self, 
+    def __init__(self,
                 class_name: str, 
                 confidence: float, 
                 distance_cm: Optional[float] = None, 
@@ -32,8 +32,8 @@ class DetectionBatch:
     
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'detections': [det.to_dict() for det in self.detections],
-            'frame_info': self.frame_info,
-            'timestamp': self.timestamp,
-            'created_at': datetime.now()
+            "detections": [det.to_dict() for det in self.detections],
+            "frame_info": self.frame_info,
+            "timestamp": self.timestamp,
+            "created_at": datetime.now()
         }
