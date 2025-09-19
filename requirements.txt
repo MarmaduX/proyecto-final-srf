@@ -1,5 +1,7 @@
 Flask==2.3.3
-opencv-python==4.8.1.78
-ultralytics==8.0.196
+opencv-python==4.12.0.88
+ultralytics==8.3.202
 pymongo==4.5.0
 python-dotenv==1.0.0
+numpy==2.2.6
+paho-mqtt==1.6.1

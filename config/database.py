@@ -1,5 +1,4 @@
 from pymongo import MongoClient
-from datetime import datetime
 from .settings import settings
 
 class DatabaseConfig:

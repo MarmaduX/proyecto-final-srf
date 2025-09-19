@@ -1,7 +1,6 @@
 from config.database import db_config
 from models.detection import Detection, DetectionBatch
 from typing import List, Dict, Any
-import json
 
 class DetectionService:
     def __init__(self):
@@ -36,16 +35,15 @@ class DetectionService:
             if not detections:
                 print("No hay detecciones para guardar")
                 return False
-
             detection_objects = []
-            for det in detections:
-                detection = Detection(
-                    class_name=str(det.get("class") or ""),
-                    confidence=float(det.get("confidence", 0.0)) if det.get("confidence") is not None else 0.0,
-                    bbox=det.get("bbox"),
-                    distance_cm=det.get("distance_cm"),
-                    timestamp=det.get("timestamp")
-                )
+
+            for d in detections:
+                class_name = d.get("class_name", "unknown")
+                confidence = d.get("confidence", 0.5)
+                distance_cm = d.get("distance_cm")
+                bbox = d.get("bbox", [])
+
+                detection = Detection(class_name=class_name, distance_cm=distance_cm, confidence=confidence, bbox=bbox, timestamp=d.get("timestamp"))
                 detection_objects.append(detection)
 
             batch = DetectionBatch(detection_objects)
