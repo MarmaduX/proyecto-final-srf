@@ -2,13 +2,24 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 class Detection:
-    def __init__(self, confidence: float, timestamp: Optional[datetime] = None):
+    def __init__(self, 
+                class_name: str, 
+                confidence: float, 
+                distance_cm: Optional[float] = None, 
+                bbox: Optional[List[int]] = None, 
+                timestamp: Optional[float] = None):
+        self.class_name = class_name
         self.confidence = confidence
-        self.timestamp = timestamp or datetime.now()
-    
+        self.distance_cm = distance_cm
+        self.bbox = bbox or []
+        self.timestamp = datetime.fromtimestamp(timestamp) if timestamp else datetime.now()
+
     def to_dict(self) -> Dict[str, Any]:
         return {
+            'class_name': self.class_name,
             'confidence': self.confidence,
+            "distance_cm": self.distance_cm,
+            'bbox': self.bbox,
             'timestamp': self.timestamp,
             'created_at': datetime.now()
         }

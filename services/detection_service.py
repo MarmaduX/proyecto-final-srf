@@ -1,7 +1,6 @@
 from config.database import db_config
 from models.detection import Detection, DetectionBatch
 from typing import List, Dict, Any
-import json
 
 class DetectionService:
     def __init__(self):
@@ -11,30 +10,47 @@ class DetectionService:
     def initialize(self):
         if db_config.connect():
             self.collection = db_config.get_collection(self.collection_name)
+            print(f"Conectado a la colección: {self.collection}")
             return True
+        print("No se pudo conectar a MongoDB")
         return False
     
     def store_detection_batch(self, detection_batch: DetectionBatch) -> bool:
         try:
             if self.collection is not None:
-                result = self.collection.insert_one(detection_batch.to_dict())
+                data = detection_batch.to_dict()
+                print("Guardando en Mongo:", data)
+                result = self.collection.insert_one(data)
+                print("Insert result:", result.inserted_id)
                 return result.inserted_id is not None
-            return False
+            else:
+                print("self.collection es None")
+                return False
         except Exception as e:
             print(f"Error storing detection batch: {e}")
             return False
     
-    def store_detections(self, detections: List[tuple]) -> bool:
+    def store_detections(self, detections: List[Dict[str, Any]]) -> bool:
         try:
-            detection_objects = []
-            for class_name, confidence in detections:
-                detection = Detection(confidence)
-                detection_objects.append(detection)
+            if not detections:
+                print("No hay detecciones para guardar")
+                return False
             
-            if detection_objects:
-                batch = DetectionBatch(detection_objects)
-                return self.store_detection_batch(batch)
-            return False
+            detection_objects = [] 
+            print(detections) 
+
+            for d in detections:
+                class_name = d.get("class_name", "unknown")
+                confidence = d.get("confidence", 0.5)
+                distance_cm = d.get("distance_cm")
+                bbox = d.get("bbox", [])
+
+                detection = Detection(class_name=class_name, distance_cm=distance_cm, confidence=confidence, bbox=bbox)
+                detection_objects.append(detection)
+
+            batch = DetectionBatch(detection_objects)
+            return self.store_detection_batch(batch)
+
         except Exception as e:
             print(f"Error storing detections: {e}")
             return False

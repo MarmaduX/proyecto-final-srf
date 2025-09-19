@@ -1,19 +1,42 @@
 import time
-from flask import Flask, Response, request, jsonify
+import threading
+import json
+
 import cv2
 import numpy as np
+from bson import ObjectId
+from flask import Flask, Response, request, jsonify
+from flask.json.provider import DefaultJSONProvider
 from ultralytics import YOLO
-import threading
+
 from mqtt_client import setup_mqtt
-from detection import detection_loop
+from services.detection_loop import detection_loop
 from services.detection_service import detection_service
 from config.settings import settings
 
+
 app = Flask(__name__)
- 
+
+class CustomJSONProvider(DefaultJSONProvider):
+    def dumps(self, obj, **kwargs):
+        return json.dumps(obj, default=self.default, **kwargs)
+
+    def loads(self, s, **kwargs):
+        return json.loads(s, **kwargs)
+
+    def default(self, obj):  # type: ignore
+        if isinstance(obj, ObjectId):
+            return str(obj)
+        return super().default(obj)
+
+app.json_provider_class = CustomJSONProvider
+app.json = app.json_provider_class(app)
+
 model = YOLO(settings.MODEL_PATH)
     
-cap = cv2.VideoCapture("http://192.168.1.10:4747/video")
+cap = cv2.VideoCapture(settings.VIDEO_URL)
+if not cap.isOpened():
+    raise RuntimeError("No se pudo abrir la cámara")
  
 frame_output = [None]   
 frame_lock = threading.Lock()
@@ -28,48 +51,30 @@ def index():
         return jsonify({"status": "ok"})
     return "Servidor Flask con YOLO funcionando 🚀"
 
-""" def detection_loop():
-    global frame_output, running
-    while running and cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            continue
-
-        results = model.predict(frame, imgsz=640, conf=0.5, verbose=False)
-        annotated_frame = results[0].plot()
- 
-        frame_output = annotated_frame 
-        detections = []
-        for r in results:
-            for box in r.boxes:
-                cls_name = model.names[int(box.cls)]
-                conf = float(box.conf)
-                detections.append((cls_name, conf))
-
-        if detections:
-            print("Detecciones:", detections) 
-            detection_service.store_detections(detections) """
-
 @app.route("/video")
 def video():
     def generate():
         global frame_output
-        while True: 
-            with frame_lock:
-                frame = frame_output[0]
- 
-            if frame is None or not isinstance(frame, (np.ndarray,)):
-                time.sleep(0.05)
-                continue
+        try:
+            while True:
+                with frame_lock:
+                    frame = frame_output[0]
 
-            ok, buffer = cv2.imencode(".jpg", frame)
-            if not ok:
-                continue
+                if frame is None or not isinstance(frame, np.ndarray):
+                    time.sleep(0.05)
+                    continue
 
-            yield (
-                b"--frame\r\n"
-                b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
-            )
+                ok, buffer = cv2.imencode(".jpg", frame)
+                if not ok:
+                    continue
+
+                yield (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
+                )
+        except GeneratorExit:
+            print("Cliente desconectado del stream")
+
 
     return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
@@ -84,7 +89,7 @@ if __name__ == "__main__":
         t.start()
 
         try:
-            app.run(host=settings.HOST, port=settings.PORT, debug=settings.FLASK_DEBUG)
+            app.run(host=settings.HOST, port=settings.PORT, debug=settings.FLASK_DEBUG, use_reloader=False)
         finally:
             running = False
             cap.release()
