@@ -1,30 +1,31 @@
 import time
-from flask import Flask, Response, jsonify
+from flask import Flask, Response, request, jsonify
 import cv2
 import numpy as np
 from ultralytics import YOLO
 import threading
-from config import *
 from mqtt_client import setup_mqtt
 from detection import detection_loop
 from services.detection_service import detection_service
 from config.settings import settings
 
 app = Flask(__name__)
-model = YOLO("../AI/weights/best.pt")
-
-model = YOLO(MODEL_PATH)
-cap = cv2.VideoCapture(VIDEO_URL)
+ 
+model = YOLO(settings.MODEL_PATH)
+    
+cap = cv2.VideoCapture("http://192.168.1.10:4747/video")
  
 frame_output = [None]   
 frame_lock = threading.Lock()
 running = True       
 
-control = {"running": True, "conf": 0.5, "snapshot": False}
+control = {"running": True, "conf": 0.6, "snapshot": False}
 mqtt_client = setup_mqtt(control)
 
-@app.route("/")
+@app.route('/', methods=['GET', 'POST'])
 def index():
+    if request.method == 'POST':
+        return jsonify({"status": "ok"})
     return "Servidor Flask con YOLO funcionando 🚀"
 
 """ def detection_loop():

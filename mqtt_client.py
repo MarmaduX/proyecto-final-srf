@@ -1,6 +1,6 @@
 import json
 import paho.mqtt.client as mqtt
-from config import *
+from config.settings import settings
 
 def setup_mqtt(control):
     client = mqtt.Client()
@@ -8,7 +8,7 @@ def setup_mqtt(control):
 
     def on_connect(c, userdata, flags, rc):
         print("MQTT conectado, rc =", rc)
-        c.subscribe(MQTT_TOPIC_COMMANDS)
+        c.subscribe(settings.MQTT_TOPIC_COMMANDS)
 
     def on_message(c, userdata, msg):
         payload = msg.payload.decode(errors="ignore")
@@ -20,10 +20,10 @@ def setup_mqtt(control):
 
         if isinstance(data, str) and data == "stop":
             userdata["running"] = False
-            c.publish(MQTT_TOPIC_ACK, json.dumps({"status": "stopped"}))
+            c.publish(settings.MQTT_TOPIC_ACK, json.dumps({"status": "stopped"}))
 
     client.on_connect = on_connect
     client.on_message = on_message
-    client.connect(MQTT_BROKER, MQTT_PORT, 60)
+    client.connect(settings.MQTT_BROKER, settings.MQTT_PORT, 60)
     client.loop_start()
     return client

@@ -1,5 +1,6 @@
-import cv2, json, time, datetime, base64
-from config import *
+import cv2, json, time, datetime, base64 
+from config.settings import settings
+from services.detection_service import detection_service
 
 def detection_loop(cap, model, control, mqtt_client, frame_output, frame_lock):
     while True:
@@ -27,7 +28,8 @@ def detection_loop(cap, model, control, mqtt_client, frame_output, frame_lock):
         # Se mandan todas las detecciones a ese topic
         if detections:
             payload = {"ts": datetime.datetime.utcnow().isoformat() + "Z", "detections": detections}
-            mqtt_client.publish(MQTT_TOPIC_DETECTIONS, json.dumps(payload))
+            detection_service.store_detections(detections)
+            mqtt_client.publish(settings.MQTT_TOPIC_DETECTIONS, json.dumps(payload))
 
         # Si el snapshot es true captura fotos de la deteccion
         if control.get("snapshot"):
@@ -35,5 +37,5 @@ def detection_loop(cap, model, control, mqtt_client, frame_output, frame_lock):
             if ok:
                 img_b64 = base64.b64encode(buf.tobytes()).decode()
                 snap_payload = {"ts": datetime.datetime.utcnow().isoformat() + "Z", "img": img_b64}
-                mqtt_client.publish(MQTT_TOPIC_SNAPSHOTS, json.dumps(snap_payload))
+                mqtt_client.publish(settings.MQTT_TOPIC_SNAPSHOTS, json.dumps(snap_payload))
             control["snapshot"] = False

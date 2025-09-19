@@ -16,7 +16,7 @@ class DetectionService:
     
     def store_detection_batch(self, detection_batch: DetectionBatch) -> bool:
         try:
-            if self.collection:
+            if self.collection is not None:
                 result = self.collection.insert_one(detection_batch.to_dict())
                 return result.inserted_id is not None
             return False
@@ -41,7 +41,7 @@ class DetectionService:
     
     def get_recent_detections(self, limit: int = 100) -> List[Dict[str, Any]]:
         try:
-            if self.collection:
+            if self.collection is not None:
                 cursor = self.collection.find().sort("timestamp", -1).limit(limit)
                 return list(cursor)
             return []

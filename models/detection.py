@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 class Detection:
-    def __init__(self, confidence: float, timestamp: datetime = None):
+    def __init__(self, confidence: float, timestamp: Optional[datetime] = None):
         self.confidence = confidence
         self.timestamp = timestamp or datetime.now()
     
@@ -14,7 +14,7 @@ class Detection:
         }
 
 class DetectionBatch:
-    def __init__(self, detections: List[Detection], frame_info: Dict[str, Any] = None):
+    def __init__(self, detections: List[Detection], frame_info: Optional[Dict[str, Any]] = None):
         self.detections = detections
         self.frame_info = frame_info or {}
         self.timestamp = datetime.now()

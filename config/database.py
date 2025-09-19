@@ -1,5 +1,4 @@
 from pymongo import MongoClient
-from datetime import datetime
 from .settings import settings
 
 class DatabaseConfig:
@@ -26,7 +25,7 @@ class DatabaseConfig:
             print("Disconnected from MongoDB")
     
     def get_collection(self, collection_name):
-        if self.db is None:
+        if self.db is not None:
             return self.db[collection_name]
         return None
 
