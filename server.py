@@ -4,35 +4,84 @@ from ultralytics import YOLO
 import threading
 from services.detection_service import detection_service
 from config.settings import settings
+import time
 
 app = Flask(__name__)
 model = YOLO("../AI/weights/best.pt")
 
-cap = cv2.VideoCapture("http://192.168.1.51:4747/video")
-frame_output = None   
+cap = cv2.VideoCapture("http://192.168.1.10:4747/video")
+
+frame_output = None
 running = True       
 
 def detection_loop():
     global frame_output, running
+    last_saved = []
+    save_cooldown = 10 #Segundos para volver a guardar
+    frame_count = 0
+
     while running and cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             continue
 
+        frame_count += 1
+        if frame_count % 5 != 0: #Procesa cada 5 frames
+            continue
+
         results = model.predict(frame, imgsz=640, conf=0.5, verbose=False)
         annotated_frame = results[0].plot()
- 
         frame_output = annotated_frame 
-        detections = []
-        for r in results:
-            for box in r.boxes:
-                cls_name = model.names[int(box.cls)]
-                conf = float(box.conf)
-                detections.append((cls_name, conf))
 
+        detections = []
+        altura_real = 10
+        distancia_focal = 600
+
+        now = time.time()
+
+        for r in results:
+                for box in r.boxes:
+                    cls = int(box.cls[0])
+                    conf = float(box.conf[0])
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                    altura_px = y2 - y1
+                    distancia_cm = (altura_real * distancia_focal) / altura_px if altura_px > 0 else None
+                    
+                    is_duplicate = False
+                    for saved_cls, saved_bbox, saved_time in last_saved:
+                        if cls == saved_cls and (now - saved_time) < save_cooldown:
+                            sx1, sy1, sx2, sy2 = saved_bbox
+                            overlap_x = min(x2, sx2) - max(x1, sx1)
+                            overlap_y = min(y2, sy2) - max(y1, sy1)
+                            if overlap_x > 0 and overlap_y > 0:
+                                is_duplicate = True
+                                break
+
+                    if not is_duplicate:
+                        detections.append({
+                            "class": model.names[cls],
+                            "confidence": conf,
+                            "bbox": [x1, y1, x2, y2],
+                            "distance_cm": distancia_cm,
+                            "timestamp": now
+                        })
+                        last_saved.append((cls, (x1, y1, x2, y2), now))
+                    
+                    if distancia_cm:
+                        cv2.putText(
+                            annotated_frame,
+                            f"{distancia_cm:.0f} cm",
+                            (x1, y1 - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.6,
+                            (0, 255, 0),
+                            2
+                        )
+                    
         if detections:
             print("Detecciones:", detections)
             detection_service.store_detections(detections)
+        last_saved = [(c, b, t) for (c, b, t) in last_saved if now - t < save_cooldown]
 
 @app.route("/")
 def index():
@@ -62,12 +111,13 @@ if __name__ == "__main__":
     if detection_service.initialize():
         t = threading.Thread(target=detection_loop, daemon=True)
         t.start()
-
         try:
             app.run(host=settings.HOST, port=settings.PORT, debug=settings.FLASK_DEBUG)
         finally:
-            running = False
+            running = False 
             cap.release()
             cv2.destroyAllWindows()
     else:
         print("Failed to initialize MongoDB connection")
+        cap.release()
+        cv2.destroyAllWindows()

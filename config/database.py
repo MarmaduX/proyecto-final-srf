@@ -26,7 +26,7 @@ class DatabaseConfig:
             print("Disconnected from MongoDB")
     
     def get_collection(self, collection_name):
-        if self.db is None:
+        if self.db is not None:
             return self.db[collection_name]
         return None
 
