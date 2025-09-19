@@ -43,7 +43,7 @@ class DetectionService:
                 distance_cm = d.get("distance_cm")
                 bbox = d.get("bbox", [])
 
-                detection = Detection(class_name=class_name, distance_cm=distance_cm, confidence=confidence, bbox=bbox, timestamp=det.get("timestamp"))
+                detection = Detection(class_name=class_name, distance_cm=distance_cm, confidence=confidence, bbox=bbox, timestamp=d.get("timestamp"))
                 detection_objects.append(detection)
 
             batch = DetectionBatch(detection_objects)
