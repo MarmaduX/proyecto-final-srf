@@ -40,8 +40,8 @@ class DetectionService:
             detection_objects = []
             for det in detections:
                 detection = Detection(
-                    class_name=det.get("class"),
-                    confidence=det.get("confidence"),
+                    class_name=str(det.get("class") or ""),
+                    confidence=float(det.get("confidence", 0.0)) if det.get("confidence") is not None else 0.0,
                     bbox=det.get("bbox"),
                     distance_cm=det.get("distance_cm"),
                     timestamp=det.get("timestamp")

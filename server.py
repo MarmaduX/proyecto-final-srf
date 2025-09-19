@@ -9,7 +9,7 @@ import time
 app = Flask(__name__)
 model = YOLO("../AI/weights/best.pt")
 
-cap = cv2.VideoCapture("http://192.168.1.6:4747/video")
+cap = cv2.VideoCapture("http://192.168.1.10:4747/video")
 
 frame_output = None
 running = True       
@@ -114,11 +114,10 @@ if __name__ == "__main__":
         try:
             app.run(host=settings.HOST, port=settings.PORT, debug=settings.FLASK_DEBUG)
         finally:
-            running = False
-            if cap.isOpened():
-                cap.release()
+            running = False 
+            cap.release()
             cv2.destroyAllWindows()
     else:
         print("Failed to initialize MongoDB connection")
-            cap.release()
-            cv2.destroyAllWindows()
+        cap.release()
+        cv2.destroyAllWindows()
