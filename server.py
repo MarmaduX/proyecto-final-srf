@@ -1,5 +1,5 @@
 import time
-from flask import Flask, Response
+from flask import Flask, Response, jsonify
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -7,6 +7,8 @@ import threading
 from config import *
 from mqtt_client import setup_mqtt
 from detection import detection_loop
+from services.detection_service import detection_service
+from config.settings import settings
 
 app = Flask(__name__)
 model = YOLO("../AI/weights/best.pt")
@@ -44,7 +46,8 @@ def index():
                 detections.append((cls_name, conf))
 
         if detections:
-            print("Detecciones:", detections) """
+            print("Detecciones:", detections) 
+            detection_service.store_detections(detections) """
 
 @app.route("/video")
 def video():
@@ -69,15 +72,24 @@ def video():
 
     return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
-if __name__ == "__main__":
-    t = threading.Thread(target=detection_loop, args=(cap, model, control, mqtt_client, frame_output, frame_lock), daemon=True)
-    t.start()
+@app.route("/detections")
+def get_detections():
+    detections = detection_service.get_recent_detections(limit=50)
+    return jsonify(detections)
 
-    try:
-        app.run(host="0.0.0.0", port=5000)
-    finally:
-        control["running"] = False
-        mqtt_client.loop_stop()
-        mqtt_client.disconnect()
-        cap.release()
-        cv2.destroyAllWindows() 
+if __name__ == "__main__":
+    if detection_service.initialize():
+        t = threading.Thread(target=detection_loop, args=(cap, model, control, mqtt_client, frame_output, frame_lock), daemon=True)
+        t.start()
+
+        try:
+            app.run(host=settings.HOST, port=settings.PORT, debug=settings.FLASK_DEBUG)
+        finally:
+            running = False
+            cap.release()
+            cv2.destroyAllWindows()
+            control["running"] = False
+            mqtt_client.loop_stop()
+            mqtt_client.disconnect()  
+    else:
+        print("Failed to initialize MongoDB connection") 
