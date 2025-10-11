@@ -1,4 +1,3 @@
-version: "3.8"
 services:
     mosquitto:
         image: eclipse-mosquitto
@@ -11,3 +10,15 @@ services:
             - ./mosquitto/config:/mosquitto/config
             - ./mosquitto/data:/mosquitto/data
             - ./mosquitto/log:/mosquitto/log
+    mongodb:
+        image: mongo:6.0
+        container_name: mongodb
+        restart: unless-stopped
+        ports:
+            - "27017:27017"
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: admin
+        volumes:
+            - ./mongo/data:/data/db
+            - ./mongo/init:/docker-entrypoint-initdb.d
