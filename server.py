@@ -8,6 +8,7 @@ from bson import ObjectId
 from flask import Flask, Response, request, jsonify
 from flask.json.provider import DefaultJSONProvider
 from ultralytics import YOLO
+from typing import Optional
 
 from mqtt_client import setup_mqtt
 from services.detection_loop import detection_loop
@@ -34,14 +35,49 @@ app.json_provider_class = CustomJSONProvider
 app.json = app.json_provider_class(app)
 
 model = YOLO(settings.MODEL_PATH)
-    
-cap = cv2.VideoCapture(settings.VIDEO_URL)
-if not cap.isOpened():
-    raise RuntimeError("No se pudo abrir la cámara")
- 
-frame_output = [None]   
+
+cap_container: dict[str, Optional[cv2.VideoCapture]] = {"cap": None}
+cap = None
+cap_lock = threading.Lock()
+frame_output = [None]
 frame_lock = threading.Lock()
-running = True       
+running = True
+control = {"running": True, "conf": 0.6, "snapshot": False}
+mqtt_client = setup_mqtt(control)
+camera_connected = False
+
+# -------------------------------
+# FUNCIÓN DE CONEXIÓN A LA CÁMARA
+# -------------------------------
+def connect_camera(rtsp_url, retry_interval=5):
+    global camera_connected
+    while running:
+        if camera_connected:
+            time.sleep(2)
+            continue
+
+        print(f"[INFO] Intentando conectar a la cámara RTSP: {rtsp_url}")
+        new_cap = cv2.VideoCapture(rtsp_url)
+
+        if new_cap.isOpened():
+            with cap_lock:
+                if cap_container["cap"] is not None:
+                    cap_container["cap"].release()
+                cap_container["cap"] = new_cap
+                camera_connected = True
+            print("[INFO] Cámara conectada exitosamente ✅")
+
+            while running:
+                time.sleep(2)
+                with cap_lock:
+                    if cap_container["cap"] is None or not cap_container["cap"].isOpened():
+                        print("[WARN] Cámara desconectada, reintentando...")
+                        camera_connected = False
+                        break
+        else:
+            print("[WARN] No se pudo conectar a la cámara. Reintentando en 5s...")
+            new_cap.release()
+            time.sleep(retry_interval)
 
 control = {"running": True, "conf": 0.6, "snapshot": False}
 mqtt_client = setup_mqtt(control)
@@ -85,19 +121,31 @@ def get_detections():
     return jsonify(detections)
 
 if __name__ == "__main__":
-    if detection_service.initialize():
-        t = threading.Thread(target=detection_loop, args=(cap, model, control, mqtt_client, frame_output, frame_lock), daemon=True)
+    if detection_service.initialize(): 
+        # 🔹 Hilo para reconectar cámara continuamente  
+        camera_thread = threading.Thread(
+            target=connect_camera, args=(settings.VIDEO_URL,), daemon=True
+        )
+        camera_thread.start()
+        
+        # 🔹 Hilo de detección YOLO
+        t = threading.Thread(
+            target=detection_loop,
+            args=(cap_container, model, control, mqtt_client, frame_output, frame_lock),
+            daemon=True
+        )
         t.start()
+
         try:
-            app.run(host=settings.HOST, port=settings.PORT, debug=settings.FLASK_DEBUG, use_reloader=False)
+            app.run(host=settings.HOST, port=settings.PORT, debug=settings.FLASK_DEBUG)
         finally:
             running = False 
-            cap.release()
+            with cap_lock:
+                if cap:
+                    cap.release()
             cv2.destroyAllWindows()
             control["running"] = False
             mqtt_client.loop_stop()
             mqtt_client.disconnect()  
     else:
         print("Failed to initialize MongoDB connection")
-        cap.release()
-        cv2.destroyAllWindows()
