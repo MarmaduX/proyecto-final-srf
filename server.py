@@ -75,7 +75,7 @@ def connect_camera(rtsp_url, retry_interval=5):
                         camera_connected = False
                         break
         else:
-            print("[WARN] No se pudo conectar a la cámara. Reintentando en 5s...")
+            print(f"[WARN] No se pudo conectar a la cámara. Reintentando en {retry_interval:.1f}s...")
             new_cap.release()
             time.sleep(retry_interval)
 
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     if detection_service.initialize(): 
         # 🔹 Hilo para reconectar cámara continuamente  
         camera_thread = threading.Thread(
-            target=connect_camera, args=(settings.VIDEO_URL,), daemon=True
+            target=connect_camera, args=(settings.VIDEO_URL, 3), daemon=True
         )
         camera_thread.start()
         
