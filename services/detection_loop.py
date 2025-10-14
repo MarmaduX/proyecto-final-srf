@@ -3,15 +3,15 @@ from config.settings import settings
 from services.detection_service import detection_service
 import time
 
-def detection_loop(cap, model, control, mqtt_client, frame_output, frame_lock):    
+def detection_loop(cap_container, model, control, mqtt_client, frame_output, frame_lock):    
     last_saved = []
     save_cooldown = 10 
     frame_count = 0
     while True:
-        if not control["running"]:
-            time.sleep(0.1)
+        cap = cap_container["cap"]
+        if cap is None or not cap.isOpened():
+            time.sleep(2)
             continue
-
         ret, frame = cap.read()
         if not ret:
             continue
