@@ -7,7 +7,7 @@ class Settings:
     MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
     DATABASE_NAME = os.getenv('DATABASE_NAME', 'detection_system')
     FLASK_ENV = os.getenv('FLASK_ENV', 'development')
-    FLASK_DEBUG = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
+    FLASK_DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'false'
     HOST = os.getenv('HOST', '0.0.0.0')
     PORT = int(os.getenv('PORT', 5000))
     MODEL_PATH = os.getenv('MODEL_PATH', "../AI/weights/best.pt")
@@ -20,6 +20,7 @@ class Settings:
     MQTT_TOPIC_COMMANDS   = os.getenv('MQTT_TOPIC_COMMANDS', "commands")
     MQTT_TOPIC_SNAPSHOTS  = os.getenv('MQTT_TOPIC_SNAPSHOTS', "snapshots")
     MQTT_TOPIC_ACK        = os.getenv('MQTT_TOPIC_ACK', "ack")
+    MQTT_TOPIC_LOCATIONS   = os.getenv('MQTT_TOPIC_LOCATIONS', "locations")
 
 
 settings = Settings()
