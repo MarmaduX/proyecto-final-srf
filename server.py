@@ -15,6 +15,7 @@ from services.detection_loop import detection_loop
 from services.detection_service import detection_service
 from config.settings import settings
 import time
+from config.database import db_config
 
 
 app = Flask(__name__)
@@ -79,9 +80,6 @@ def connect_camera(rtsp_url, retry_interval=5):
             new_cap.release()
             time.sleep(retry_interval)
 
-control = {"running": True, "conf": 0.6, "snapshot": False}
-mqtt_client = setup_mqtt(control)
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -120,6 +118,26 @@ def get_detections():
     detections = detection_service.get_recent_detections(limit=50)
     return jsonify(detections)
 
+@app.route("/locations")
+def get_locations(): 
+    if db_config.db is None:
+        if not db_config.connect():
+            return jsonify({"error": "No se pudo conectar a la base de datos"}), 500
+     
+    collection = db_config.get_collection("locations")
+    if collection is None:
+        return jsonify({"error": "Colección no encontrada"}), 404
+     
+    docs = list(collection.find().sort("created_at", -1).limit(50))
+     
+    for doc in docs:
+        doc["_id"] = str(doc["_id"])
+        if "created_at" in doc:
+            doc["created_at"] = doc["created_at"].isoformat()
+    
+    return jsonify(docs)
+
+
 if __name__ == "__main__":
     if detection_service.initialize(): 
         # 🔹 Hilo para reconectar cámara continuamente  
@@ -137,7 +155,7 @@ if __name__ == "__main__":
         t.start()
 
         try:
-            app.run(host=settings.HOST, port=settings.PORT, debug=settings.FLASK_DEBUG)
+            app.run(host=settings.HOST, port=settings.PORT, debug=settings.FLASK_DEBUG, use_reloader=False)
         finally:
             running = False 
             with cap_lock:
