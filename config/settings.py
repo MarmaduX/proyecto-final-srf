@@ -21,6 +21,10 @@ class Settings:
     MQTT_TOPIC_SNAPSHOTS  = os.getenv('MQTT_TOPIC_SNAPSHOTS', "snapshots")
     MQTT_TOPIC_ACK        = os.getenv('MQTT_TOPIC_ACK', "ack")
     MQTT_TOPIC_LOCATIONS   = os.getenv('MQTT_TOPIC_LOCATIONS', "locations")
+    MQTT_TOPIC_REQUEST_UNFUMIGATED   = os.getenv('MQTT_TOPIC_REQUEST_UNFUMIGATED', "request/unfumigated")
+    MQTT_TOPIC_RESPONSE_UNFUMIGATED   = os.getenv('MQTT_TOPIC_RESPONSE_UNFUMIGATED', "response/unfumigated")
+    MQTT_TOPIC_FUMIGATE   = os.getenv('MQTT_TOPIC_FUMIGATE', "command/fumigate")
+    MQTT_TOPIC_ACK_FUMIGATE   = os.getenv('MQTT_TOPIC_ACK_FUMIGATE', "ack/fumigate")
 
 
 settings = Settings()
