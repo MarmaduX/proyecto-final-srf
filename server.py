@@ -43,7 +43,7 @@ cap_lock = threading.Lock()
 frame_output = [None]
 frame_lock = threading.Lock()
 running = True
-control = {"running": True, "conf": 0.6, "snapshot": False}
+control = {"running": True, "conf": 0.75, "snapshot": False}
 mqtt_client = setup_mqtt(control)
 camera_connected = False
 
